@@ -1,0 +1,33 @@
+# Fichiers de configuration locale
+.env
+.env.local
+
+# Fichiers Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Environnements virtuels
+venv/
+env/
+ENV/
+
+# Fichiers Excel de test
+*.xlsx
+*.xls
+!exemple_template.xlsx
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
