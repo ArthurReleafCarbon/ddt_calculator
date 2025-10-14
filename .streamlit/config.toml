@@ -1,0 +1,10 @@
+[theme]
+# Configuration du thème clair
+primaryColor="#FF4B4B"
+backgroundColor="#FFFFFF"
+secondaryBackgroundColor="#F0F2F6"
+textColor="#262730"
+font="sans serif"
+
+# Base du thème (light ou dark)
+base="light"
