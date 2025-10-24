@@ -87,7 +87,7 @@ Tous les détails de validation sont affichés dans le terminal.
 │   ├── batch_distance_calculator_optimized.py  # Version optimisée
 │   ├── geocoding_cache.py          # Cache des géolocalisations
 │   └── summary_calculator.py
-├── validators/                      # Validation de fichiers Excel
+├── validation/                      # Validation de fichiers Excel
 │   └── excel_validator.py
 ├── tests/                          # Scripts de test
 │   └── test_performance.py

@@ -56,7 +56,8 @@ def calculate_batch_distance(address1: str,
                               address2: str,
                               api_key_ors: Optional[str] = None,
                               region1: Optional[str] = None,
-                              region2: Optional[str] = None) -> BatchDistanceResult:
+                              region2: Optional[str] = None,
+                              quiet: bool = False) -> BatchDistanceResult:
     """
     Calcule la distance entre deux adresses avec validation croisée Nominatim + ORS
     SANS plafond de distance (adapté pour les longues distances)
@@ -73,6 +74,7 @@ def calculate_batch_distance(address1: str,
         api_key_ors: Clé API OpenRouteService
         region1: Région de l'adresse 1 (optionnel)
         region2: Région de l'adresse 2 (optionnel)
+        quiet: Mode silencieux (réduit les logs)
 
     Returns:
         BatchDistanceResult avec la distance finale et les détails
@@ -80,13 +82,15 @@ def calculate_batch_distance(address1: str,
     address1_norm = normalize_commune_name(address1)
     address2_norm = normalize_commune_name(address2)
 
-    logger.info(f"\n{'='*80}")
-    logger.info(f"🔍 CALCUL BATCH: {address1_norm} → {address2_norm}")
-    logger.info(f"{'='*80}")
+    if not quiet:
+        logger.info(f"\n{'='*80}")
+        logger.info(f"🔍 CALCUL BATCH: {address1_norm} → {address2_norm}")
+        logger.info(f"{'='*80}")
 
     # Si adresses identiques
     if address1_norm == address2_norm:
-        logger.info(f"✅ Même adresse détectée: 0 km")
+        if not quiet:
+            logger.info(f"✅ Même adresse détectée: 0 km")
         return BatchDistanceResult(
             final_distance=0.0,
             nominatim_distance=0.0,
@@ -99,18 +103,21 @@ def calculate_batch_distance(address1: str,
         )
 
     # Calcul avec Nominatim
-    logger.info("📡 Calcul avec Nominatim...")
+    if not quiet:
+        logger.info("📡 Calcul avec Nominatim...")
     dist_nominatim = _calculate_with_nominatim(address1_norm, address2_norm, region1, region2)
 
     # Calcul avec ORS (si clé disponible)
     dist_ors = None
     if api_key_ors:
-        logger.info("📡 Calcul avec OpenRouteService...")
+        if not quiet:
+            logger.info("📡 Calcul avec OpenRouteService...")
         dist_ors = _calculate_with_ors(address1_norm, address2_norm, api_key_ors, region1, region2)
 
-    logger.info(f"📊 Résultats bruts:")
-    logger.info(f"   - Nominatim: {dist_nominatim} km")
-    logger.info(f"   - ORS: {dist_ors} km")
+    if not quiet:
+        logger.info(f"📊 Résultats bruts:")
+        logger.info(f"   - Nominatim: {dist_nominatim} km")
+        logger.info(f"   - ORS: {dist_ors} km")
 
     # Logique de sélection (sans validation de plafond de distance)
     final_distance = None
@@ -126,7 +133,8 @@ def calculate_batch_distance(address1: str,
             source = "both"
             status = "ok"
             message = "Même adresse confirmée par les deux services"
-            logger.info(f"✅ Même adresse confirmée: 0 km")
+            if not quiet:
+                logger.info(f"✅ Même adresse confirmée: 0 km")
 
         elif dist_nominatim == 0 or dist_ors == 0:
             # Un des deux est 0, l'autre non : prendre le non-zéro
@@ -134,26 +142,30 @@ def calculate_batch_distance(address1: str,
             source = "nominatim" if dist_nominatim > 0 else "ors"
             status = "ok"
             message = f"Distance nulle sur un service, prise de {source}"
-            logger.info(f"⚠️ Distance nulle sur un service, prise de {source}: {final_distance} km")
+            if not quiet:
+                logger.info(f"⚠️ Distance nulle sur un service, prise de {source}: {final_distance} km")
 
         else:
             # Les deux sont non-nulles : calculer la différence
             diff_percent = abs(dist_nominatim - dist_ors) / max(dist_nominatim, dist_ors) * 100
-            logger.info(f"📐 Différence: {diff_percent:.2f}%")
+            if not quiet:
+                logger.info(f"📐 Différence: {diff_percent:.2f}%")
 
             if diff_percent < DIFF_THRESHOLD_PERCENT:
                 final_distance = round((dist_nominatim + dist_ors) / 2, 2)
                 source = "average"
                 status = "ok"
                 message = f"Différence < {DIFF_THRESHOLD_PERCENT}%, moyenne prise"
-                logger.info(f"✅ Différence acceptable, moyenne: {final_distance} km")
+                if not quiet:
+                    logger.info(f"✅ Différence acceptable, moyenne: {final_distance} km")
             else:
                 # Différence importante : prendre la plus petite
                 final_distance = min(dist_nominatim, dist_ors)
                 source = "nominatim" if dist_nominatim < dist_ors else "ors"
                 status = "warning"
                 message = f"Différence importante ({diff_percent:.1f}%), prise de la plus petite valeur ({source})"
-                logger.warning(f"⚠️ Différence importante ({diff_percent:.1f}%), prise du minimum: {final_distance} km ({source})")
+                if not quiet:
+                    logger.warning(f"⚠️ Différence importante ({diff_percent:.1f}%), prise du minimum: {final_distance} km ({source})")
 
     # Seulement Nominatim a retourné une valeur
     elif dist_nominatim is not None:
@@ -161,7 +173,8 @@ def calculate_batch_distance(address1: str,
         source = "nominatim"
         status = "ok"
         message = "Seul Nominatim a fourni une distance"
-        logger.info(f"✅ Seul Nominatim valide: {final_distance} km")
+        if not quiet:
+            logger.info(f"✅ Seul Nominatim valide: {final_distance} km")
 
     # Seulement ORS a retourné une valeur
     elif dist_ors is not None:
@@ -169,7 +182,8 @@ def calculate_batch_distance(address1: str,
         source = "ors"
         status = "ok"
         message = "Seul ORS a fourni une distance"
-        logger.info(f"✅ Seul ORS valide: {final_distance} km")
+        if not quiet:
+            logger.info(f"✅ Seul ORS valide: {final_distance} km")
 
     # Aucun service n'a retourné de valeur
     else:
@@ -177,7 +191,8 @@ def calculate_batch_distance(address1: str,
         source = "none"
         status = "error"
         message = "Aucune distance calculable (erreur de géolocalisation)"
-        logger.error(f"❌ Aucune distance calculable - À VÉRIFIER MANUELLEMENT")
+        if not quiet:
+            logger.error(f"❌ Aucune distance calculable - À VÉRIFIER MANUELLEMENT")
 
     result = BatchDistanceResult(
         final_distance=final_distance,
@@ -190,9 +205,10 @@ def calculate_batch_distance(address1: str,
         address2=address2
     )
 
-    logger.info(f"🎯 DÉCISION FINALE: {final_distance} km (source: {source}, status: {status})")
-    logger.info(f"💬 Message: {message}")
-    logger.info(f"{'='*80}\n")
+    if not quiet:
+        logger.info(f"🎯 DÉCISION FINALE: {final_distance} km (source: {source}, status: {status})")
+        logger.info(f"💬 Message: {message}")
+        logger.info(f"{'='*80}\n")
 
     return result
 

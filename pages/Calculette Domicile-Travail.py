@@ -6,7 +6,7 @@ from calculators import (
     create_summary_report,
     create_transport_mode_summary
 )
-from validators import ExcelValidator
+from validation import ExcelValidator
 import io
 import logging
 from config import get_api_key
@@ -376,6 +376,64 @@ if uploaded_file is not None:
 
 else:
     st.info("👆 Commencez par uploader un fichier Excel")
+
+    # Afficher un exemple de fichier
+    st.markdown("### 📝 Format attendu du fichier Excel")
+
+    st.markdown("""
+    **Structure requise :**
+    - Feuille nommée : `Questionnaire dom-travail`
+    - Ligne 6 : En-têtes de colonnes
+    - Ligne 7+ : Données
+    """)
+
+    example_df = pd.DataFrame({
+        "Colonne F\nCommune de résidence": [
+            "Paris",
+            "Lyon",
+            "Marseille",
+            "Lille"
+        ],
+        "Colonne G\nJours/semaine sur site": [
+            5,
+            4,
+            3,
+            5
+        ],
+        "Colonne H\nMoyen de transport": [
+            "Voiture",
+            "Voiture",
+            "Transport en commun",
+            "Vélo ou marche"
+        ],
+        "Colonne I\nCatégorie voiture": [
+            "Petite",
+            "Moyenne",
+            "",
+            ""
+        ],
+        "Colonne J\nÉnergie voiture": [
+            "Essence",
+            "Diesel",
+            "",
+            ""
+        ],
+        "Colonne L\nLieu de travail": [
+            "La Défense, Paris",
+            "Villeurbanne",
+            "Aix-en-Provence",
+            "Roubaix"
+        ]
+    })
+
+    st.dataframe(example_df, use_container_width=True)
+
+    st.markdown("""
+    **Notes importantes :**
+    - Les colonnes I et J (catégorie et énergie voiture) sont **obligatoires uniquement** si le transport est "Voiture"
+    - Les communes peuvent être précisées avec leur département ou région
+    - Le nombre de jours/semaine doit être entre 1 et 5
+    """)
 
 st.markdown("---")
 st.markdown(

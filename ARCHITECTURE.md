@@ -31,7 +31,7 @@ auto_dist_ddt/
 │   ├── geocoding_cache.py         # Cache des géolocalisations
 │   └── summary_calculator.py      # Récapitulatifs et statistiques
 │
-├── 📁 validators/                  # ✅ Validation de fichiers
+├── 📁 validation/                  # ✅ Validation de fichiers
 │   ├── __init__.py
 │   └── excel_validator.py         # Validation format Excel
 │
@@ -132,7 +132,7 @@ Excel avec 2 feuilles (données + récap)
   - Récap par type de véhicule
   - Statistiques globales
 
-### 📦 validators/
+### 📦 validation/
 
 #### `excel_validator.py`
 - **Rôle** : Validation des fichiers Excel uploadés
@@ -251,7 +251,7 @@ API_ORS = "votre_cle_api"
 ### Tester après modifications
 ```bash
 # Test imports
-python -c "from calculators import *; from validators import *"
+python -c "from calculators import *; from validation import *"
 
 # Test performance
 python tests/test_performance.py
