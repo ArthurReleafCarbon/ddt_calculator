@@ -2,12 +2,8 @@ import streamlit as st
 import pandas as pd
 from batch_distance_calculator import calculate_batch_distance
 import io
-import os
 import logging
-from dotenv import load_dotenv
-
-# Charger les variables d'environnement
-load_dotenv()
+from config import get_api_key
 
 st.set_page_config(
     page_title="Calcul de Distances par Lots",
@@ -36,8 +32,8 @@ st.sidebar.header("⚙️ Configuration")
 
 st.sidebar.markdown("### 🌐 Service de géolocalisation")
 
-# Charger la clé API ORS depuis .env
-api_key_ors = os.getenv("API_ORS")
+# Charger la clé API ORS depuis st.secrets ou .env
+api_key_ors = get_api_key()
 
 if api_key_ors:
     st.sidebar.success("✅ Clé API OpenRouteService chargée")
@@ -47,11 +43,11 @@ if api_key_ors:
     )
 else:
     st.sidebar.warning(
-        "⚠️ Clé API OpenRouteService non trouvée dans .env. "
+        "⚠️ Clé API OpenRouteService non trouvée. "
         "Le calcul sera effectué uniquement avec Nominatim."
     )
     st.sidebar.info(
-        "💡 **Conseil** : Ajoutez votre clé ORS dans le fichier .env "
+        "💡 **Conseil** : Ajoutez votre clé ORS dans les secrets "
         "pour activer la validation croisée."
     )
 

@@ -5,12 +5,8 @@ from dual_distance_calculator import calculate_distance_dual_validation
 from summary_calculator import create_summary_report, create_transport_mode_summary
 from excel_validator import ExcelValidator
 import io
-import os
 import logging
-from dotenv import load_dotenv
-
-# Charger les variables d'environnement depuis le fichier .env
-load_dotenv()
+from config import get_api_key
 
 st.set_page_config(
     page_title="Calculateur Distance Domicile-Travail",
@@ -100,8 +96,8 @@ else:
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🌐 Service de géolocalisation")
 
-# Charger automatiquement la clé API ORS depuis .env
-api_key_ors = os.getenv("API_ORS")
+# Charger automatiquement la clé API ORS depuis st.secrets ou .env
+api_key_ors = get_api_key()
 
 if api_key_ors:
     st.sidebar.success("✅ Clé API OpenRouteService chargée")
@@ -112,11 +108,11 @@ if api_key_ors:
     )
 else:
     st.sidebar.warning(
-        "⚠️ Clé API OpenRouteService non trouvée dans .env. "
+        "⚠️ Clé API OpenRouteService non trouvée. "
         "Le calcul sera effectué uniquement avec Nominatim (plus lent)."
     )
     st.sidebar.info(
-        "💡 **Conseil**: Ajoutez votre clé ORS dans le fichier .env "
+        "💡 **Conseil**: Ajoutez votre clé ORS dans les secrets "
         "pour activer la validation croisée des distances."
     )
 

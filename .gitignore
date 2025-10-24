@@ -1,6 +1,7 @@
 # Fichiers de configuration locale
 .env
 .env.local
+.streamlit/secrets.toml
 
 # Fichiers Python
 __pycache__/

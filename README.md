@@ -36,14 +36,34 @@ pip install -r requirements.txt
 echo "API_ORS=votre_cle_ici" > .env
 
 # Lancer l'application
-streamlit run app.py
+streamlit run Home.py
+# ou utiliser le Makefile
+make streamlit
 ```
 
 ## 🔑 Clé API OpenRouteService
 
 Pour activer la validation croisée des distances :
 1. Obtenez une clé gratuite sur [openrouteservice.org](https://openrouteservice.org)
-2. Ajoutez-la dans votre fichier `.env` : `API_ORS=votre_cle`
+2. **En local** : Ajoutez-la dans votre fichier `.env` : `API_ORS=votre_cle`
+3. **Sur Streamlit Cloud** : Ajoutez-la dans les **Secrets** de l'app (Settings > Secrets) :
+   ```toml
+   [secrets]
+   API_ORS = "votre_cle_ici"
+   ```
+
+## ☁️ Déploiement sur Streamlit Cloud
+
+1. Poussez votre code sur GitHub
+2. Allez sur [share.streamlit.io](https://share.streamlit.io)
+3. Connectez votre repository
+4. Spécifiez `Home.py` comme fichier principal
+5. Ajoutez votre clé API dans **Settings > Secrets** :
+   ```toml
+   [secrets]
+   API_ORS = "votre_cle_ici"
+   ```
+6. Déployez !
 
 ## 📊 Validation des distances
 

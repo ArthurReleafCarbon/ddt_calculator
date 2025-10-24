@@ -1,6 +1,6 @@
-make streamlit:
-	streamlit run home.py
+streamlit:
+	streamlit run Home.py
 
-make install requirements:
+install:
 	pip install -r requirements.txt
 
