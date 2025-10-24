@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
-from batch_distance_calculator import calculate_batch_distance
+from calculators import calculate_batch_distances_parallel, get_cache
 import io
-import logging
+import time
 from config import get_api_key
 
 st.set_page_config(
@@ -105,69 +105,78 @@ if uploaded_file is not None:
             progress_bar = st.progress(0)
             status_text = st.empty()
 
-            distances = []
-            sources = []
-            statuses = []
-            messages = []
-            nominatim_distances = []
-            ors_distances = []
+            # Vider le cache au début d'un nouveau calcul
+            cache = get_cache()
+            cache.clear()
 
-            # Statistiques
-            success_count = 0
-            error_count = 0
-            warning_count = 0
-            average_count = 0
-            nominatim_only_count = 0
-            ors_only_count = 0
-
-            # Configurer le logger
-            logger = logging.getLogger('batch_distance_calculator')
+            # Préparer les paires d'adresses
+            status_text.text("📋 Préparation des données...")
+            addresses_pairs = []
+            valid_indices = []
 
             for idx, row in df.iterrows():
-                status_text.text(f"Calcul en cours... {idx + 1}/{len(df)}")
-                progress_bar.progress((idx + 1) / len(df))
-
                 address1 = str(row[address1_col]).strip()
                 address2 = str(row[address2_col]).strip()
 
                 # Vérifier que les adresses ne sont pas vides
                 if not address1 or address1 == "nan" or not address2 or address2 == "nan":
-                    distances.append(None)
-                    sources.append("none")
-                    statuses.append("error")
-                    messages.append("Adresse manquante")
-                    nominatim_distances.append(None)
-                    ors_distances.append(None)
-                    error_count += 1
                     continue
 
-                # Calcul avec validation croisée
-                result = calculate_batch_distance(
-                    address1,
-                    address2,
-                    api_key_ors=api_key_ors
-                )
+                addresses_pairs.append((address1, address2))
+                valid_indices.append(idx)
 
-                distances.append(result.final_distance)
-                sources.append(result.source)
-                statuses.append(result.status)
-                messages.append(result.message)
-                nominatim_distances.append(result.nominatim_distance)
-                ors_distances.append(result.ors_distance)
+            total_valid = len(addresses_pairs)
+            total_invalid = len(df) - total_valid
 
-                # Compter les statistiques
-                if result.status == "ok":
-                    success_count += 1
-                    if result.source == "average":
-                        average_count += 1
-                    elif result.source == "nominatim":
-                        nominatim_only_count += 1
-                    elif result.source == "ors":
-                        ors_only_count += 1
-                elif result.status == "warning":
-                    warning_count += 1
-                else:
-                    error_count += 1
+            if total_invalid > 0:
+                st.warning(f"⚠️ {total_invalid} ligne(s) ignorée(s) (adresses manquantes)")
+
+            # Calcul parallèle des distances
+            status_text.text(f"🚀 Calcul de {total_valid} distances en parallèle...")
+            progress_bar.progress(0.1)
+
+            start_time = time.time()
+
+            results = calculate_batch_distances_parallel(
+                addresses_pairs,
+                api_key_ors=api_key_ors,
+                max_workers=5,  # 5 threads parallèles
+                quiet=True  # Mode silencieux pour les gros fichiers
+            )
+
+            elapsed_time = time.time() - start_time
+
+            progress_bar.progress(0.9)
+            status_text.text("📊 Traitement des résultats...")
+
+            # Statistiques du cache
+            cache_stats = cache.get_stats()
+
+            # Initialiser les listes avec des valeurs par défaut pour toutes les lignes
+            distances = [None] * len(df)
+            sources = ["none"] * len(df)
+            statuses = ["error"] * len(df)
+            messages = ["Adresse manquante"] * len(df)
+            nominatim_distances = [None] * len(df)
+            ors_distances = [None] * len(df)
+
+            # Remplir avec les résultats valides
+            for idx, result in zip(valid_indices, results):
+                distances[idx] = result.final_distance
+                sources[idx] = result.source
+                statuses[idx] = result.status
+                messages[idx] = result.message
+                nominatim_distances[idx] = result.nominatim_distance
+                ors_distances[idx] = result.ors_distance
+
+            # Compter les statistiques
+            success_count = sum(1 for s in statuses if s == "ok")
+            warning_count = sum(1 for s in statuses if s == "warning")
+            error_count = sum(1 for s in statuses if s == "error")
+
+            average_count = sum(1 for src in sources if src == "average")
+            nominatim_only_count = sum(1 for src in sources if src == "nominatim")
+            ors_only_count = sum(1 for src in sources if src == "ors")
 
             # Mise à jour du DataFrame
             df[distance_col] = distances
@@ -179,6 +188,12 @@ if uploaded_file is not None:
 
             status_text.text("✅ Calcul terminé !")
             progress_bar.progress(1.0)
+
+            # Affichage des performances
+            st.success(f"⚡ Calcul terminé en **{elapsed_time:.1f} secondes** ({total_valid / elapsed_time:.1f} calculs/seconde)")
+
+            if cache_stats['hit_rate'] > 0:
+                st.info(f"💾 Cache : {cache_stats['hits']} hits / {cache_stats['total']} requêtes ({cache_stats['hit_rate']:.1f}% d'économie)")
 
             # Affichage des statistiques
             st.markdown("### 📊 Statistiques de Calcul")

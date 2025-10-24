@@ -1,9 +1,12 @@
 import streamlit as st
 import pandas as pd
-from distance_calculator import calculate_distance
-from dual_distance_calculator import calculate_distance_dual_validation
-from summary_calculator import create_summary_report, create_transport_mode_summary
-from excel_validator import ExcelValidator
+from calculators import (
+    calculate_distance,
+    calculate_distance_dual_validation,
+    create_summary_report,
+    create_transport_mode_summary
+)
+from validators import ExcelValidator
 import io
 import logging
 from config import get_api_key

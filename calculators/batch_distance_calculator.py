@@ -6,7 +6,7 @@ Utilise le système de validation croisée Nominatim + ORS sans plafond de dista
 import logging
 import time
 from typing import Optional, List, Tuple
-from distance_calculator import (
+from .distance_calculator import (
     normalize_commune_name,
     get_coordinates_nominatim,
     get_coordinates_ors

@@ -7,7 +7,7 @@ la valeur la plus réaliste selon des critères de validation.
 import logging
 import time
 from typing import Optional, Tuple, Dict
-from distance_calculator import (
+from .distance_calculator import (
     normalize_commune_name,
     get_coordinates_nominatim,
     get_coordinates_ors

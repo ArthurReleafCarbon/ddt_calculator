@@ -74,6 +74,28 @@ Le système calcule automatiquement avec 2 services et sélectionne la valeur la
 
 Tous les détails de validation sont affichés dans le terminal.
 
+## 📁 Structure du projet
+
+```
+/
+├── Home.py                          # Point d'entrée de l'application
+├── config.py                        # Gestion des secrets (API keys)
+├── calculators/                     # Modules de calcul de distances
+│   ├── distance_calculator.py
+│   ├── dual_distance_calculator.py
+│   ├── batch_distance_calculator.py
+│   ├── batch_distance_calculator_optimized.py  # Version optimisée
+│   ├── geocoding_cache.py          # Cache des géolocalisations
+│   └── summary_calculator.py
+├── validators/                      # Validation de fichiers Excel
+│   └── excel_validator.py
+├── tests/                          # Scripts de test
+│   └── test_performance.py
+└── pages/                          # Pages Streamlit
+    ├── Calculette Distance.py
+    └── Calculette Domicile-Travail.py
+```
+
 ## 🛠️ Technologies utilisées
 
 - **Streamlit** : Interface web
