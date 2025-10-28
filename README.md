@@ -36,7 +36,7 @@ pip install -r requirements.txt
 echo "API_ORS=votre_cle_ici" > .env
 
 # Lancer l'application
-streamlit run Home.py
+streamlit run home.py
 # ou utiliser le Makefile
 make streamlit
 ```
@@ -57,7 +57,7 @@ Pour activer la validation croisée des distances :
 1. Poussez votre code sur GitHub
 2. Allez sur [share.streamlit.io](https://share.streamlit.io)
 3. Connectez votre repository
-4. Spécifiez `Home.py` comme fichier principal
+4. Spécifiez `home.py` comme fichier principal
 5. Ajoutez votre clé API dans **Settings > Secrets** :
    ```toml
    [secrets]
@@ -78,7 +78,7 @@ Tous les détails de validation sont affichés dans le terminal.
 
 ```
 /
-├── Home.py                          # Point d'entrée de l'application
+├── home.py                          # Point d'entrée de l'application
 ├── config.py                        # Gestion des secrets (API keys)
 ├── calculators/                     # Modules de calcul de distances
 │   ├── distance_calculator.py

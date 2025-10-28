@@ -9,7 +9,7 @@ Application Streamlit pour calculer automatiquement les distances domicile-trava
 ```
 auto_dist_ddt/
 │
-├── 📄 Home.py                      # Point d'entrée principal de l'application
+├── 📄 home.py                      # Point d'entrée principal de l'application
 ├── 📄 config.py                    # Gestion des secrets (API keys)
 ├── 📄 Makefile                     # Commandes utiles (install, streamlit)
 ├── 📄 requirements.txt             # Dépendances Python

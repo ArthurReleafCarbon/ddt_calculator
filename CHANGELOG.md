@@ -29,7 +29,7 @@
 #### Nouvelle structure
 ```
 auto_dist_ddt/
-├── Home.py
+├── home.py
 ├── config.py
 ├── calculators/      # Tous les modules de calcul
 ├── validation/       # Validation Excel (renommé de 'validators')
@@ -51,7 +51,7 @@ auto_dist_ddt/
 - Compatible déploiement cloud et local
 
 #### Renommage de fichiers
-- `home.py` → `Home.py` (convention Streamlit)
+- Fichier principal renommé en `home.py` (minuscule pour compatibilité Linux)
 - `validators/` → `validation/` (évite conflit avec package pip)
 
 #### Mise à jour des imports

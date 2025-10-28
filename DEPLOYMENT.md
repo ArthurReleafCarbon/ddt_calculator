@@ -23,7 +23,7 @@ git push origin main
 4. Configurez l'application :
    - **Repository** : `votre-username/auto_dist_ddt`
    - **Branch** : `main` (ou `master`)
-   - **Main file path** : `Home.py`
+   - **Main file path** : `home.py`
 5. Cliquez sur "Advanced settings"
 
 ### 3. Configurer les Secrets
@@ -80,7 +80,7 @@ Si vous devez changer votre clé API :
 ## Troubleshooting
 
 ### L'app ne démarre pas
-- Vérifiez que `Home.py` est bien le fichier principal spécifié
+- Vérifiez que `home.py` est bien le fichier principal spécifié
 - Consultez les logs dans Streamlit Cloud (bouton "Manage app" > "Logs")
 
 ### "Module not found"
