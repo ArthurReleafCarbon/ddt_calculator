@@ -28,7 +28,7 @@ st.markdown(f"""
 [data-testid="stSidebarNav"]::before {{
     content: "";
     display: block;
-    margin: 1rem auto 1rem auto;
+    margin: 0rem auto 1rem auto;
     width: 80%;
     height: 100px;
     background-image: url("data:image/png;base64,{logo_b64}");
