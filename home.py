@@ -28,7 +28,7 @@ st.markdown(f"""
 [data-testid="stSidebarNav"]::before {{
     content: "";
     display: block;
-    margin: 1rem auto -3rem auto;
+    margin: 1rem auto 0rem auto;
     width: 80%;
     height: 100px;
     background-image: url("data:image/png;base64,{logo_b64}");
@@ -71,7 +71,7 @@ with c1:
     unsafe_allow_html=True
     )
 with c2:
-    st.image(load_hero_image(), use_column_width=True)
+    st.image(load_hero_image(), use_container_width=True)
 
 st.write("")
 st.markdown("### 🔧 Configuration requise")
