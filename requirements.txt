@@ -4,4 +4,3 @@ openpyxl>=3.1.5
 geopy>=2.4.1
 requests>=2.32.3
 python-dotenv>=1.0.0
-base64>=1.0.0
