@@ -10,14 +10,34 @@ from validation import ExcelValidator
 import io
 import logging
 from config import get_api_key
+import base64
 
 st.set_page_config(
     page_title="Calculateur Distance Domicile-Travail",
     page_icon="🚗",
     layout="wide"
 )
+# Encodage du logo en base64 pour l'injecter en CSS (fiable en déploiement)
+with open("img/logo2.png", "rb") as f:
+    logo_b64 = base64.b64encode(f.read()).decode()
 
-st.title("🚗 Calculateur de Distance Domicile-Travail")
+st.markdown(f"""
+<style>
+/* 1) Cas standard : navigation multipage visible (stSidebarNav) */
+[data-testid="stSidebarNav"]::before {{
+    content: "";
+    display: block;
+    margin: 1rem auto -3rem auto;
+    width: 80%;
+    height: 100px;
+    background-image: url("data:image/png;base64,{logo_b64}");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+}}
+</style>
+""", unsafe_allow_html=True)
+st.title("📍 Calcul de Distances domicile-travail")
 st.markdown("---")
 
 st.markdown("""
