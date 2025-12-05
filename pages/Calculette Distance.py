@@ -173,60 +173,70 @@ if uploaded_file is not None:
             if 'resume_calculation' in st.session_state:
                 del st.session_state['resume_calculation']
 
-            progress_bar = st.progress(0)
-            status_text = st.empty()
+            # Utiliser st.status pour un meilleur affichage de progression
+            with st.status("Calcul des distances en cours...", expanded=True) as status:
+                progress_bar = st.progress(0)
+                status_text = st.empty()
 
-            # Callback pour mettre à jour la progression
-            def update_progress(current: int, total: int, message: str):
-                progress = current / total if total > 0 else 0
-                progress_bar.progress(progress)
-                status_text.text(f"{message}: {current}/{total}")
+                # Callback pour mettre à jour la progression
+                def update_progress(current: int, total: int, message: str):
+                    try:
+                        progress = current / total if total > 0 else 0
+                        progress_bar.progress(min(progress, 1.0))
+                        status_text.markdown(f"**{message}** : {current}/{total} lignes")
+                    except Exception as e:
+                        # En cas d'erreur Streamlit, juste logger
+                        print(f"Erreur mise à jour progress: {e}")
 
-            # Calcul par batch avec sauvegarde temporaire
-            start_time = time.time()
-            status_text.text("📋 Préparation des données...")
+                # Calcul par batch avec sauvegarde temporaire
+                start_time = time.time()
+                status_text.text("📋 Préparation des données...")
 
-            try:
-                result_df, stats = batch_processor.process_batches(
-                    df=df,
-                    process_function=calculate_batch_distance,
-                    address1_col=address1_col,
-                    address2_col=address2_col,
-                    session_id=session_id,
-                    progress_callback=update_progress,
-                    max_workers=5,
-                    api_key_ors=api_key_ors,
-                    quiet=True
-                )
+                try:
+                    result_df, stats = batch_processor.process_batches(
+                        df=df,
+                        process_function=calculate_batch_distance,
+                        address1_col=address1_col,
+                        address2_col=address2_col,
+                        session_id=session_id,
+                        progress_callback=update_progress,
+                        max_workers=5,
+                        api_key_ors=api_key_ors,
+                        quiet=True
+                    )
 
-                elapsed_time = time.time() - start_time
+                    elapsed_time = time.time() - start_time
 
-                # Statistiques du cache
-                cache = get_cache()
-                cache_stats = cache.get_stats()
+                    # Statistiques du cache
+                    cache = get_cache()
+                    cache_stats = cache.get_stats()
 
-                status_text.text("✅ Calcul terminé !")
-                progress_bar.progress(1.0)
+                    status_text.text("✅ Calcul terminé !")
+                    progress_bar.progress(1.0)
 
-                # Afficher les stats du cache
-                if cache_stats['cache_size'] > 0:
-                    st.info(f"💾 Cache: {cache_stats['cache_size']} adresses enregistrées | "
-                           f"Taux de hit: {cache_stats['hit_rate']:.1f}% "
-                           f"({cache_stats['hits']} hits, {cache_stats['misses']} misses)")
+                    # Marquer le status comme complété
+                    status.update(label="✅ Calcul terminé !", state="complete")
 
-                st.success(f"✅ Traitement terminé en {elapsed_time:.1f} secondes")
+                    # Afficher les stats du cache
+                    if cache_stats['cache_size'] > 0:
+                        st.info(f"💾 Cache: {cache_stats['cache_size']} adresses enregistrées | "
+                               f"Taux de hit: {cache_stats['hit_rate']:.1f}% "
+                               f"({cache_stats['hits']} hits, {cache_stats['misses']} misses)")
 
-                # Stocker les résultats dans session_state
-                st.session_state['results_df'] = result_df
-                st.session_state['success_count'] = stats['success_count']
-                st.session_state['warning_count'] = stats['warning_count']
-                st.session_state['error_count'] = stats['error_count']
+                    st.success(f"✅ Traitement terminé en {elapsed_time:.1f} secondes")
 
-            except Exception as e:
-                st.error(f"❌ Erreur lors du calcul: {str(e)}")
-                st.exception(e)
-                # Proposer de récupérer les résultats partiels
-                st.warning("💡 Des résultats partiels ont peut-être été sauvegardés. Rechargez la page pour les récupérer.")
+                    # Stocker les résultats dans session_state
+                    st.session_state['results_df'] = result_df
+                    st.session_state['success_count'] = stats['success_count']
+                    st.session_state['warning_count'] = stats['warning_count']
+                    st.session_state['error_count'] = stats['error_count']
+
+                except Exception as e:
+                    status.update(label="❌ Erreur lors du calcul", state="error")
+                    st.error(f"❌ Erreur lors du calcul: {str(e)}")
+                    st.exception(e)
+                    # Proposer de récupérer les résultats partiels
+                    st.warning("💡 Des résultats partiels ont peut-être été sauvegardés. Rechargez la page pour les récupérer.")
 
         # Affichage des résultats (en dehors du if button pour qu'ils persistent)
         if 'results_df' in st.session_state:
