@@ -101,6 +101,9 @@ if uploaded_file is not None:
                 del st.session_state['address1_col']
                 del st.session_state['address2_col']
                 del st.session_state['distance_col']
+        else:
+            # Réutiliser le session_id existant si c'est le même fichier
+            session_id = st.session_state.get('session_id', session_id)
 
         # Lecture du fichier Excel
         df = pd.read_excel(uploaded_file)
@@ -173,24 +176,27 @@ if uploaded_file is not None:
             if 'resume_calculation' in st.session_state:
                 del st.session_state['resume_calculation']
 
-            # Utiliser st.status pour un meilleur affichage de progression
-            with st.status("Calcul des distances en cours...", expanded=True) as status:
+            # Créer les éléments de progression AVANT le st.status
+            progress_container = st.container()
+            with progress_container:
                 progress_bar = st.progress(0)
                 status_text = st.empty()
 
-                # Callback pour mettre à jour la progression
-                def update_progress(current: int, total: int, message: str):
-                    try:
-                        progress = current / total if total > 0 else 0
-                        progress_bar.progress(min(progress, 1.0))
-                        status_text.markdown(f"**{message}** : {current}/{total} lignes")
-                    except Exception as e:
-                        # En cas d'erreur Streamlit, juste logger
-                        print(f"Erreur mise à jour progress: {e}")
+            # Callback pour mettre à jour la progression
+            def update_progress(current: int, total: int, message: str):
+                try:
+                    progress = current / total if total > 0 else 0
+                    progress_bar.progress(min(progress, 1.0))
+                    status_text.markdown(f"**{message}** : {current}/{total} lignes")
+                except Exception as e:
+                    # En cas d'erreur Streamlit, juste logger
+                    print(f"Erreur mise à jour progress: {e}")
+
+            # Utiliser st.status pour un meilleur affichage de progression
+            with st.status("Calcul des distances en cours...", expanded=True) as status:
 
                 # Calcul par batch avec sauvegarde temporaire
                 start_time = time.time()
-                status_text.text("📋 Préparation des données...")
 
                 try:
                     result_df, stats = batch_processor.process_batches(
