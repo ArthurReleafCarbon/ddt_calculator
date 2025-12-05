@@ -54,13 +54,15 @@ with c1:
     ### 📍 Calcul de Distances par Lots
     - Importez un fichier Excel avec 2 colonnes d'adresses
     - Calculez automatiquement les distances entre chaque paire
-    - Validation croisée Nominatim + OpenRouteService
+    - Validation croisée avec 2 API de géolocalisation
 
     ### 🚗 Calculateur Domicile-Travail
     - Spécialement conçu pour le poste domicile-travail, sur base de la trame Releaf Carbon
     - Calcul des distances annuelles
     - Récapitulatif par mode de transport
-    - Validation des données Excel
+    - Prêt pour l'import dans le tableur Bilan Carbone
+    - Optimisé pour toutes les communes de France (DOM inclus)
+
     """)
     st.write("")
     st.write("")
@@ -74,7 +76,7 @@ with c2:
     st.image(load_hero_image(), use_container_width=True)
 
 st.write("")
-st.markdown("### 🔧 Configuration requise")
+st.markdown("### 🔧 Configuration")
 
 col1, col2 = st.columns(2)
 
@@ -83,19 +85,15 @@ with col1:
     **Services de géolocalisation :**
     - 🌍 Nominatim (OpenStreetMap) - Gratuit
     - 📍 OpenRouteService - Clé API requise
-
-    **Recommandation :** Configurez une clé API OpenRouteService dans votre fichier `.env`
-    pour bénéficier de la validation croisée et d'une meilleure précision.
     """)
 
 with col2:
     st.markdown("""
     **Format des fichiers :**
     - 📊 Excel (.xlsx, .xls)
-    - Encodage UTF-8
     - Colonnes clairement identifiées
 
-    **Note :** Les exemples de format sont disponibles dans chaque section.
+    **Note :** Les exemples de format attendu sont disponibles dans chaque section.
     """)
 
 st.markdown("---")
@@ -108,8 +106,7 @@ incluant le numéro, la rue et la ville.
 st.markdown("---")
 st.markdown(
     "<div style='text-align: center; color: gray;'>"
-    "Développé pour le calcul de distances et bilans carbone | "
-    "Compatible avec toutes les communes de France"
+    "Développé par Releaf Carbon"
     "</div>",
     unsafe_allow_html=True
 )
