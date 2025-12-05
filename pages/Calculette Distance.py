@@ -108,6 +108,13 @@ if uploaded_file is not None:
         # Lecture du fichier Excel
         df = pd.read_excel(uploaded_file)
 
+        # DEBUG: Afficher les informations brutes du DataFrame
+        st.markdown("### 🔍 Informations du fichier")
+        st.write(f"**Colonnes détectées:** {df.columns.tolist()}")
+        st.write(f"**Nombre de lignes:** {len(df)}")
+        st.write(f"**Types de données:**")
+        st.code(str(df.dtypes))
+
         # Vérification du nombre de colonnes
         if len(df.columns) < 2:
             st.error("❌ Le fichier doit contenir au moins 2 colonnes (Adresse 1, Adresse 2)")
@@ -134,6 +141,25 @@ if uploaded_file is not None:
 
         st.info(f"📊 **{len(df)}** lignes détectées")
         st.info(f"📋 Colonnes identifiées :\n- Adresse 1 : `{address1_col}`\n- Adresse 2 : `{address2_col}`\n- Distance : `{distance_col}`")
+
+        # DEBUG: Afficher les premières valeurs pour vérifier la validation
+        with st.expander("🔍 Debug - Validation des adresses (cliquer pour voir)"):
+            invalid_values = ['nan', 'NaN', '<NA>', 'None', '', 'null', 'NULL']
+            debug_data = []
+            for idx in range(min(5, len(df))):
+                addr1_raw = df[address1_col].iloc[idx]
+                addr2_raw = df[address2_col].iloc[idx]
+                addr1_str = str(addr1_raw).strip()
+                addr2_str = str(addr2_raw).strip()
+                is_valid = addr1_str not in invalid_values and addr2_str not in invalid_values
+                debug_data.append({
+                    'Ligne': idx,
+                    'Adresse 1': f"{addr1_str[:30]}...",
+                    'Adresse 2': f"{addr2_str[:30]}...",
+                    'Valide': '✅' if is_valid else '❌',
+                    'Raison': '' if is_valid else f"addr1='{addr1_str}', addr2='{addr2_str}'"
+                })
+            st.dataframe(pd.DataFrame(debug_data), use_container_width=True)
 
         # Vérifier s'il existe des résultats partiels d'une session précédente
         batch_processor = BatchProcessor(batch_size=50)
