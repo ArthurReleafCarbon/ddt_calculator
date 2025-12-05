@@ -1,10 +1,11 @@
 import streamlit as st
 import pandas as pd
-from calculators import get_cache
+from calculators import get_cache, BatchProcessor, calculate_batch_distance
 import io
 import time
 from config import get_api_key
 import base64
+import hashlib
 
 st.set_page_config(
     page_title="Calcul de Distances par Lots",
@@ -84,12 +85,14 @@ uploaded_file = st.file_uploader(
 
 if uploaded_file is not None:
     try:
+        # Générer un session_id unique basé sur le nom du fichier
+        session_id = hashlib.md5(uploaded_file.name.encode()).hexdigest()
+
         # Réinitialiser les résultats si un nouveau fichier est uploadé
         if 'uploaded_file_name' not in st.session_state or st.session_state['uploaded_file_name'] != uploaded_file.name:
             st.session_state['uploaded_file_name'] = uploaded_file.name
-            # Vider le cache seulement lors d'un nouveau fichier
-            cache = get_cache()
-            cache.clear()
+            st.session_state['session_id'] = session_id
+            # NE PAS vider le cache persistant - il est réutilisable entre sessions
             if 'results_df' in st.session_state:
                 del st.session_state['results_df']
                 del st.session_state['success_count']
@@ -129,133 +132,101 @@ if uploaded_file is not None:
         st.info(f"📊 **{len(df)}** lignes détectées")
         st.info(f"📋 Colonnes identifiées :\n- Adresse 1 : `{address1_col}`\n- Adresse 2 : `{address2_col}`\n- Distance : `{distance_col}`")
 
+        # Vérifier s'il existe des résultats partiels d'une session précédente
+        batch_processor = BatchProcessor(batch_size=50)
+        has_pending, num_batches = batch_processor.has_pending_session(session_id)
+
+        if has_pending:
+            st.warning(f"⚠️ Résultats partiels détectés ({num_batches} batch(s) sauvegardé(s))")
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("📥 Récupérer les résultats partiels", type="secondary"):
+                    partial_df = batch_processor.get_partial_results(session_id, df, address1_col, address2_col)
+                    if partial_df is not None:
+                        st.success("✅ Résultats partiels récupérés")
+                        # Exporter les résultats partiels
+                        df_export = partial_df[[address1_col, address2_col, distance_col]].copy()
+                        output = io.BytesIO()
+                        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                            df_export.to_excel(writer, index=False, sheet_name='Distances calculées')
+                        excel_data = output.getvalue()
+                        st.download_button(
+                            label="📥 Télécharger les résultats partiels",
+                            data=excel_data,
+                            file_name=f"distances_partielles_{uploaded_file.name}",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            type="primary"
+                        )
+            with col2:
+                if st.button("🔄 Reprendre le calcul", type="primary"):
+                    st.session_state['resume_calculation'] = True
+                    st.rerun()
+
         # Bouton de calcul
-        if st.button("🚀 Calculer les distances", type="primary"):
+        if st.button("🚀 Calculer les distances", type="primary") or st.session_state.get('resume_calculation', False):
             # Stocker les noms de colonnes dans session_state
             st.session_state['address1_col'] = address1_col
             st.session_state['address2_col'] = address2_col
             st.session_state['distance_col'] = distance_col
 
+            # Réinitialiser le flag de reprise
+            if 'resume_calculation' in st.session_state:
+                del st.session_state['resume_calculation']
+
             progress_bar = st.progress(0)
             status_text = st.empty()
 
-            # Préparer les paires d'adresses
-            status_text.text("📋 Préparation des données...")
-            addresses_pairs = []
-            valid_indices = []
+            # Callback pour mettre à jour la progression
+            def update_progress(current: int, total: int, message: str):
+                progress = current / total if total > 0 else 0
+                progress_bar.progress(progress)
+                status_text.text(f"{message}: {current}/{total}")
 
-            for idx, row in df.iterrows():
-                address1 = str(row[address1_col]).strip()
-                address2 = str(row[address2_col]).strip()
-
-                # Vérifier que les adresses ne sont pas vides
-                if not address1 or address1 == "nan" or not address2 or address2 == "nan":
-                    continue
-
-                addresses_pairs.append((address1, address2))
-                valid_indices.append(idx)
-
-            total_valid = len(addresses_pairs)
-            total_invalid = len(df) - total_valid
-
-            if total_invalid > 0:
-                st.warning(f"⚠️ {total_invalid} ligne(s) ignorée(s) (adresses manquantes)")
-
-            # Calcul parallèle des distances avec suivi de progression
+            # Calcul par batch avec sauvegarde temporaire
             start_time = time.time()
+            status_text.text("📋 Préparation des données...")
 
-            # Utiliser ThreadPoolExecutor pour suivre la progression
-            from concurrent.futures import ThreadPoolExecutor, as_completed
-            from calculators import calculate_batch_distance
+            try:
+                result_df, stats = batch_processor.process_batches(
+                    df=df,
+                    process_function=calculate_batch_distance,
+                    address1_col=address1_col,
+                    address2_col=address2_col,
+                    session_id=session_id,
+                    progress_callback=update_progress,
+                    max_workers=5,
+                    api_key_ors=api_key_ors,
+                    quiet=True
+                )
 
-            results = [None] * total_valid
-            completed = 0
+                elapsed_time = time.time() - start_time
 
-            with ThreadPoolExecutor(max_workers=5) as executor:
-                # Soumettre tous les calculs
-                future_to_index = {
-                    executor.submit(
-                        calculate_batch_distance,
-                        addr1, addr2,
-                        api_key_ors=api_key_ors,
-                        quiet=True
-                    ): idx
-                    for idx, (addr1, addr2) in enumerate(addresses_pairs)
-                }
+                # Statistiques du cache
+                cache = get_cache()
+                cache_stats = cache.get_stats()
 
-                # Collecter les résultats avec mise à jour de la progress bar
-                for future in as_completed(future_to_index):
-                    idx = future_to_index[future]
-                    try:
-                        results[idx] = future.result()
-                    except Exception as e:
-                        # Créer un résultat d'erreur
-                        addr1, addr2 = addresses_pairs[idx]
-                        from calculators import BatchDistanceResult
-                        results[idx] = BatchDistanceResult(
-                            final_distance=None,
-                            nominatim_distance=None,
-                            ors_distance=None,
-                            source="none",
-                            status="error",
-                            message=f"Erreur: {str(e)}",
-                            address1=addr1,
-                            address2=addr2
-                        )
+                status_text.text("✅ Calcul terminé !")
+                progress_bar.progress(1.0)
 
-                    completed += 1
-                    progress = completed / total_valid
-                    progress_bar.progress(progress)
-                    status_text.text(f"Calcul en cours... {completed}/{total_valid}")
+                # Afficher les stats du cache
+                if cache_stats['cache_size'] > 0:
+                    st.info(f"💾 Cache: {cache_stats['cache_size']} adresses enregistrées | "
+                           f"Taux de hit: {cache_stats['hit_rate']:.1f}% "
+                           f"({cache_stats['hits']} hits, {cache_stats['misses']} misses)")
 
-            elapsed_time = time.time() - start_time
+                st.success(f"✅ Traitement terminé en {elapsed_time:.1f} secondes")
 
-            # Statistiques du cache
-            cache = get_cache()
-            cache_stats = cache.get_stats()
+                # Stocker les résultats dans session_state
+                st.session_state['results_df'] = result_df
+                st.session_state['success_count'] = stats['success_count']
+                st.session_state['warning_count'] = stats['warning_count']
+                st.session_state['error_count'] = stats['error_count']
 
-            # Initialiser les listes avec des valeurs par défaut pour toutes les lignes
-            distances = [None] * len(df)
-            sources = ["none"] * len(df)
-            statuses = ["error"] * len(df)
-            messages = ["Adresse manquante"] * len(df)
-            nominatim_distances = [None] * len(df)
-            ors_distances = [None] * len(df)
-
-            # Remplir avec les résultats valides
-            for idx, result in zip(valid_indices, results):
-                distances[idx] = result.final_distance
-                sources[idx] = result.source
-                statuses[idx] = result.status
-                messages[idx] = result.message
-                nominatim_distances[idx] = result.nominatim_distance
-                ors_distances[idx] = result.ors_distance
-
-            # Compter les statistiques
-            success_count = sum(1 for s in statuses if s == "ok")
-            warning_count = sum(1 for s in statuses if s == "warning")
-            error_count = sum(1 for s in statuses if s == "error")
-
-            average_count = sum(1 for src in sources if src == "average")
-            nominatim_only_count = sum(1 for src in sources if src == "nominatim")
-            ors_only_count = sum(1 for src in sources if src == "ors")
-
-            # Mise à jour du DataFrame
-            df[distance_col] = distances
-            df["Source"] = sources
-            df["Statut"] = statuses
-            df["Message"] = messages
-            df["Distance Nominatim (km)"] = nominatim_distances
-            df["Distance ORS (km)"] = ors_distances
-
-            status_text.text("✅ Calcul terminé !")
-            progress_bar.progress(1.0)
-
-            # Stocker les résultats dans session_state
-            st.session_state['results_df'] = df
-            st.session_state['success_count'] = success_count
-            st.session_state['warning_count'] = warning_count
-            st.session_state['error_count'] = error_count
+            except Exception as e:
+                st.error(f"❌ Erreur lors du calcul: {str(e)}")
+                st.exception(e)
+                # Proposer de récupérer les résultats partiels
+                st.warning("💡 Des résultats partiels ont peut-être été sauvegardés. Rechargez la page pour les récupérer.")
 
         # Affichage des résultats (en dehors du if button pour qu'ils persistent)
         if 'results_df' in st.session_state:

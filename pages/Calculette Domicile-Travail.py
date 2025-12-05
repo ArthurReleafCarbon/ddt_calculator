@@ -40,12 +40,25 @@ st.markdown(f"""
 st.title("📍 Calcul de Distances domicile-travail")
 st.markdown("---")
 
-st.markdown("""
-### Instructions
-1. Uploadez votre fichier Excel contenant les données de déplacements
-2. L'application calculera automatiquement les distances
-3. Téléchargez le fichier enrichi avec les résultats détaillés et le récapitulatif par mode de transport
-""")
+# Créer deux colonnes pour Instructions et Système de validation
+col_instructions, col_validation = st.columns([1, 1])
+
+with col_instructions:
+    st.markdown("""
+    ### Instructions
+    1. Uploadez votre fichier Excel contenant les données de déplacements
+    2. L'application calculera automatiquement les distances
+    3. Téléchargez le fichier enrichi avec les résultats détaillés et le récapitulatif par mode de transport
+    """)
+
+with col_validation:
+    st.markdown("""
+    ### 🎯 Système de validation croisée
+    Le système calcule automatiquement avec **2 services** (Nominatim + OpenRouteService) et sélectionne la valeur la plus fiable :
+    - **Différence < 10%** → Moyenne des deux valeurs
+    - **Différence > 10%** → Valeur la plus petite
+    - **Distance > 300 km** → Rejetée automatiquement (aberrante)
+    """)
 
 # Configuration de l'API
 st.sidebar.header("⚙️ Configuration")

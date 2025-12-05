@@ -32,3 +32,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Cache et fichiers temporaires
+.cache/
