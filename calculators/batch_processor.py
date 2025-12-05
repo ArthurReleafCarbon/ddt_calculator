@@ -79,8 +79,17 @@ class BatchProcessor:
         skipped_count = len(df) - total_valid
 
         logger.info(f"📦 Traitement par batch: {total_valid} lignes valides en {total_batches} batch(s)")
+        logger.info(f"   Total lignes dans DataFrame: {len(df)}")
+        logger.info(f"   Lignes valides: {total_valid}")
+        logger.info(f"   Lignes skippées: {skipped_count}")
+
         if skipped_count > 0:
             logger.warning(f"⚠️ {skipped_count} ligne(s) ignorée(s) (adresses vides ou invalides)")
+
+        # Si AUCUNE ligne valide, c'est un problème critique
+        if total_valid == 0:
+            logger.error("❌ AUCUNE ligne valide détectée - Vérifier les données")
+            logger.error(f"   Colonnes utilisées: address1_col='{address1_col}', address2_col='{address2_col}'")
 
         # Vérifier si des résultats temporaires existent déjà
         existing_results = self._load_existing_results(session_id)

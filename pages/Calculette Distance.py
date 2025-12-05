@@ -225,6 +225,22 @@ if uploaded_file is not None:
                 start_time = time.time()
 
                 try:
+                    # Vérifier combien de lignes valides avant traitement
+                    invalid_values = ['nan', 'NaN', '<NA>', 'None', '', 'null', 'NULL']
+                    valid_count = 0
+                    for idx, row in df.iterrows():
+                        address1 = str(row[address1_col]).strip()
+                        address2 = str(row[address2_col]).strip()
+                        if address1 not in invalid_values and address2 not in invalid_values:
+                            valid_count += 1
+
+                    status_text.markdown(f"**📊 Validation** : {valid_count}/{len(df)} lignes valides")
+
+                    if valid_count == 0:
+                        status.update(label="❌ Aucune ligne valide détectée", state="error")
+                        st.error("❌ Aucune ligne valide à traiter. Vérifiez que les colonnes contiennent bien des adresses.")
+                        st.stop()
+
                     result_df, stats = batch_processor.process_batches(
                         df=df,
                         process_function=calculate_batch_distance,
