@@ -64,8 +64,11 @@ class BatchProcessor:
             address1 = str(row[address1_col]).strip()
             address2 = str(row[address2_col]).strip()
 
-            # Vérifier que les adresses ne sont pas vides
-            if not address1 or address1 == "nan" or not address2 or address2 == "nan":
+            # Vérifier que les adresses ne sont pas vides ou invalides
+            # Couvrir les cas: nan, NaN, <NA>, None, chaîne vide
+            invalid_values = ['nan', 'NaN', '<NA>', 'None', '', 'null', 'NULL']
+            if address1 in invalid_values or address2 in invalid_values:
+                logger.debug(f"Ligne {idx} skippée: address1='{address1}', address2='{address2}'")
                 continue
 
             addresses_pairs.append((address1, address2))
@@ -73,8 +76,11 @@ class BatchProcessor:
 
         total_valid = len(addresses_pairs)
         total_batches = (total_valid + self.batch_size - 1) // self.batch_size
+        skipped_count = len(df) - total_valid
 
-        logger.info(f"📦 Traitement par batch: {total_valid} lignes en {total_batches} batch(s)")
+        logger.info(f"📦 Traitement par batch: {total_valid} lignes valides en {total_batches} batch(s)")
+        if skipped_count > 0:
+            logger.warning(f"⚠️ {skipped_count} ligne(s) ignorée(s) (adresses vides ou invalides)")
 
         # Vérifier si des résultats temporaires existent déjà
         existing_results = self._load_existing_results(session_id)
