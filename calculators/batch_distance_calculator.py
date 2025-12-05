@@ -1,6 +1,7 @@
 """
 Module de calcul de distances par lots entre paires d'adresses.
 Utilise le système de validation croisée Nominatim + ORS sans plafond de distance.
+Avec cache persistant SQLite pour optimisation.
 """
 
 import logging
@@ -11,6 +12,7 @@ from .distance_calculator import (
     get_coordinates_nominatim,
     get_coordinates_ors
 )
+from .geocoding_cache import get_cache
 from geopy.distance import geodesic
 
 # Configuration du logging
@@ -217,12 +219,23 @@ def _calculate_with_nominatim(address1: str,
                                address2: str,
                                region1: Optional[str] = None,
                                region2: Optional[str] = None) -> Optional[float]:
-    """Calcule la distance avec Nominatim"""
+    """Calcule la distance avec Nominatim (avec cache)"""
     try:
-        coords1 = get_coordinates_nominatim(address1, region1)
-        time.sleep(1)  # Rate limit
-        coords2 = get_coordinates_nominatim(address2, region2)
-        time.sleep(1)
+        cache = get_cache()
+
+        # Récupérer coords1 depuis le cache ou API
+        coords1 = cache.get(address1, "nominatim", region1)
+        if coords1 is None:
+            coords1 = get_coordinates_nominatim(address1, region1)
+            cache.set(address1, "nominatim", coords1, region1)
+            time.sleep(1)  # Rate limit seulement si appel API
+
+        # Récupérer coords2 depuis le cache ou API
+        coords2 = cache.get(address2, "nominatim", region2)
+        if coords2 is None:
+            coords2 = get_coordinates_nominatim(address2, region2)
+            cache.set(address2, "nominatim", coords2, region2)
+            time.sleep(1)  # Rate limit seulement si appel API
 
         if coords1 is None or coords2 is None:
             return None
@@ -248,10 +261,21 @@ def _calculate_with_ors(address1: str,
                         api_key: str,
                         region1: Optional[str] = None,
                         region2: Optional[str] = None) -> Optional[float]:
-    """Calcule la distance avec OpenRouteService"""
+    """Calcule la distance avec OpenRouteService (avec cache)"""
     try:
-        coords1 = get_coordinates_ors(address1, api_key, region1)
-        coords2 = get_coordinates_ors(address2, api_key, region2)
+        cache = get_cache()
+
+        # Récupérer coords1 depuis le cache ou API
+        coords1 = cache.get(address1, "ors", region1)
+        if coords1 is None:
+            coords1 = get_coordinates_ors(address1, api_key, region1)
+            cache.set(address1, "ors", coords1, region1)
+
+        # Récupérer coords2 depuis le cache ou API
+        coords2 = cache.get(address2, "ors", region2)
+        if coords2 is None:
+            coords2 = get_coordinates_ors(address2, api_key, region2)
+            cache.set(address2, "ors", coords2, region2)
 
         if coords1 is None or coords2 is None:
             return None
